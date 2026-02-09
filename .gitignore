@@ -6,3 +6,4 @@ __pycache__/
 .env
 results/*.json
 results/*.csv
+results/trace_*.csv
