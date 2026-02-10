@@ -174,9 +174,4 @@ python -m scripts.run_search --task qa --backend ollama --algo beam --budget 60 
 * **Phase 1 Report**: `reports/phase1.tex`
 * Build instructions available in `reports/README.md`
 
-```
 
-If you want, I can also:
-- tighten it further to match a **course rubric**, or  
-- add **badges**, **figures**, or **example output blocks** for GitHub polish.
-```
