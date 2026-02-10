@@ -57,7 +57,7 @@ def main():
         llm = OllamaLLM()
         llm_cfg = LLMConfig(temperature=0.0, timeout_s=120.0)
 
-    evaluator = Evaluator(llm=llm, metric=metric, lambda_cost=0.0, llm_config=llm_cfg)
+    evaluator = Evaluator(llm=llm, metric=metric, lambda_cost=0.0005, llm_config=llm_cfg)
 
     trace = TraceLogger(out_dir="results", filename=f"trace_{run_id}.csv")
     cfg = HillClimbConfig(
