@@ -8,3 +8,5 @@ results/*.json
 results/*.csv
 results/trace_*.csv
 results/bench_summary.csv
+results/worst_*.json
+results/plots/

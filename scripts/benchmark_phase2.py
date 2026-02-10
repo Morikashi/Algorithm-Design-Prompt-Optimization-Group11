@@ -21,6 +21,8 @@ from src.algorithms.heuristics import HeuristicConfig
 
 from src.utils.datasets_phase2 import QA_PHASE2, SUM_PHASE2
 
+from src.analysis.failure_cases import save_worst_examples # this line wasadded/edited in my second commit
+
 
 def ensure_results_dir():
     os.makedirs("results", exist_ok=True)
@@ -61,6 +63,8 @@ def run_one(task: str, algo: str, budget: int, max_neighbors: int, max_depth: in
         )
         best_score = res.best_eval.final_score
         eval_count = res.eval_count
+        worst_path = save_worst_examples(res.best_eval, out_dir="results", run_id=run_id, k=5) # added worst_path in my second commit
+
 
     elif algo == "bfs":
         res = bfs_search(
@@ -78,6 +82,7 @@ def run_one(task: str, algo: str, budget: int, max_neighbors: int, max_depth: in
         )
         best_score = res.best_eval.final_score
         eval_count = res.eval_count
+        worst_path = save_worst_examples(res.best_eval, out_dir="results", run_id=run_id, k=5) # added worst_path in my second commit
 
     else:
         res = beam_search(
@@ -96,6 +101,7 @@ def run_one(task: str, algo: str, budget: int, max_neighbors: int, max_depth: in
         )
         best_score = res.best_eval.final_score
         eval_count = res.eval_count
+        worst_path = save_worst_examples(res.best_eval, out_dir="results", run_id=run_id, k=5) # added worst_path in my second commit
 
     elapsed = time.perf_counter() - t0
     current, peak = tracemalloc.get_traced_memory()
@@ -117,6 +123,7 @@ def run_one(task: str, algo: str, budget: int, max_neighbors: int, max_depth: in
         "runtime_s": elapsed,
         "peak_mem_mb": peak_mb,
         "trace_path": trace.path,
+        "worst_path": worst_path,
     }
 
 
@@ -125,8 +132,8 @@ def write_summary(rows, out_path="results/bench_summary.csv"):
     header = [
         "run_id", "task", "algo", "heuristics",
         "budget", "max_neighbors", "max_depth", "beam_width",
-        "eval_count", "best_score", "runtime_s", "peak_mem_mb", "trace_path"
-    ]
+        "eval_count", "best_score", "runtime_s", "peak_mem_mb", "trace_path", "worst_path"
+    ] # added worst_path in my second commit
     with open(out_path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=header)
         w.writeheader()
