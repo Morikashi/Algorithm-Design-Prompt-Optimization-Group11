@@ -10,6 +10,8 @@ from src.utils.hashing import hash_text
 from src.utils.trace import TraceLogger, TraceEvent
 from src.algorithms.heuristics import HeuristicConfig, filter_neighbors
 
+from src.analysis.embeddings import OllamaEmbeddings
+from src.algorithms.heuristics import filter_neighbors_embedding
 
 @dataclass
 class BeamConfig:
@@ -50,6 +52,7 @@ def beam_search(
     best_so_far = max(best_so_far, best_eval.final_score)
 
     evaluated_texts: List[str] = [start.render()]
+    embedder = OllamaEmbeddings() if config.heuristic_cfg.enabled and config.heuristic_cfg.mode == "embedding" else None
 
     if trace_logger:
         trace_logger.log(
@@ -76,7 +79,12 @@ def beam_search(
 
         for p, _peval in beam:
             neighbors = neighbor_fn(p, config.max_neighbors)
-            neighbors = filter_neighbors(neighbors, evaluated_texts, config.heuristic_cfg)
+            # neighbors = filter_neighbors(neighbors, evaluated_texts, config.heuristic_cfg)
+            if config.heuristic_cfg.enabled and config.heuristic_cfg.mode == "embedding":
+                assert embedder is not None
+                neighbors = filter_neighbors_embedding(neighbors, evaluated_texts, config.heuristic_cfg, embedder)
+            else:
+                neighbors = filter_neighbors(neighbors, evaluated_texts, config.heuristic_cfg)
 
             for nb in neighbors:
                 if eval_idx >= config.max_prompt_evals:

@@ -11,6 +11,7 @@ from src.evaluation.evaluator import Evaluator
 from src.evaluation.llm_interface import LLMConfig
 from src.utils.trace import TraceLogger
 from src.utils.datasets import QA_DATASET, SUMMARIZATION_DATASET
+from src.utils.datasets_phase2 import QA_PHASE2, SUM_PHASE2
 
 from src.algorithms.hill_climbing import hill_climb, HillClimbConfig
 from src.algorithms.bfs import bfs_search, BFSConfig
@@ -43,6 +44,10 @@ def main():
     ap.add_argument("--novelty", type=float, default=0.92)
     ap.add_argument("--max_prompt_words", type=int, default=250)
 
+    ap.add_argument("--heur_mode", choices=["jaccard", "embedding"], default="jaccard")
+    ap.add_argument("--emb_cos", type=float, default=0.90)
+
+
     args = ap.parse_args()
 
     run_id = f"{args.task}-{args.backend}-{args.algo}-{uuid.uuid4().hex[:8]}"
@@ -67,10 +72,13 @@ def main():
     start = make_start_prompt(args.task)
 
     hcfg = HeuristicConfig(
-        enabled=args.heuristics,
-        novelty_threshold=args.novelty,
-        max_prompt_words=args.max_prompt_words,
-    )
+    enabled=args.heuristics,
+    novelty_threshold=args.novelty,
+    max_prompt_words=args.max_prompt_words,
+    mode=args.heur_mode,
+    embedding_cosine_threshold=args.emb_cos,
+    ) # NEWLY ADDED
+
 
     trace = TraceLogger(out_dir="results", filename=f"trace_{run_id}.csv")
 

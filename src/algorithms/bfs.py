@@ -9,7 +9,12 @@ from src.prompt.operators import generate_neighbors
 from src.evaluation.evaluator import Evaluator, EvalResult
 from src.utils.hashing import hash_text
 from src.utils.trace import TraceLogger, TraceEvent
-from src.algorithms.heuristics import HeuristicConfig, filter_neighbors
+#from src.algorithms.heuristics import HeuristicConfig, filter_neighbors
+from src.analysis.embeddings import OllamaEmbeddings
+#from src.algorithms.heuristics import filter_neighbors_embedding
+
+
+from src.algorithms.heuristics import HeuristicConfig, filter_neighbors, filter_neighbors_embedding
 
 
 @dataclass
@@ -50,7 +55,10 @@ def bfs_search(
     best_so_far = max(best_so_far, best_eval.final_score)
 
     evaluated_texts: List[str] = [start.render()]
+    embedder = OllamaEmbeddings() if config.heuristic_cfg.enabled and config.heuristic_cfg.mode == "embedding" else None # NEWLY ADDED
 
+
+    # NEW:
     if trace_logger:
         trace_logger.log(
             TraceEvent(
@@ -77,7 +85,12 @@ def bfs_search(
             continue
 
         neighbors = neighbor_fn(p, config.max_neighbors)
-        neighbors = filter_neighbors(neighbors, evaluated_texts, config.heuristic_cfg)
+        if config.heuristic_cfg.enabled and config.heuristic_cfg.mode == "embedding":
+            assert embedder is not None
+            neighbors = filter_neighbors_embedding(neighbors, evaluated_texts, config.heuristic_cfg, embedder)
+        else:
+            neighbors = filter_neighbors(neighbors, evaluated_texts, config.heuristic_cfg)
+
 
         for nb in neighbors:
             if eval_idx >= config.max_prompt_evals:
