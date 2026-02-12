@@ -22,6 +22,7 @@ from src.algorithms.heuristics import HeuristicConfig
 from src.utils.datasets_phase2 import QA_PHASE2, SUM_PHASE2
 
 from src.analysis.failure_cases import save_worst_examples # this line wasadded/edited in my second commit
+from src.algorithms.simulated_annealing import simulated_annealing, SAConfig
 
 
 def ensure_results_dir():
@@ -43,9 +44,16 @@ def run_one(task: str, algo: str, budget: int, max_neighbors: int, max_depth: in
     llm = OllamaLLM()
     llm_cfg = LLMConfig(temperature=0.0, timeout_s=180.0)
 
-    evaluator = Evaluator(llm=llm, metric=metric, lambda_cost=0.0, llm_config=llm_cfg)
+    evaluator = Evaluator(llm=llm, metric=metric, lambda_cost=0.0005, llm_config=llm_cfg)
 
-    hcfg = HeuristicConfig(enabled=heuristics, novelty_threshold=0.92, max_prompt_words=250)
+    hcfg = HeuristicConfig(
+    enabled=heuristics,
+    novelty_threshold=0.92,
+    max_prompt_words=250,
+    mode=args.heur_mode,
+    embedding_cosine_threshold=args.emb_cos,
+)
+
 
     trace = TraceLogger(out_dir="results", filename=f"trace_{run_id}.csv")
 
@@ -65,6 +73,26 @@ def run_one(task: str, algo: str, budget: int, max_neighbors: int, max_depth: in
         eval_count = res.eval_count
         worst_path = save_worst_examples(res.best_eval, out_dir="results", run_id=run_id, k=5) # added worst_path in my second commit
 
+    elif algo == "sa":
+        res = simulated_annealing(
+            start=start_prompt(task),
+            evaluator=evaluator,
+            dataset=dataset,
+            config=SAConfig(
+                max_steps=200,
+                max_prompt_evals=budget,
+                max_neighbors=max_neighbors,
+                t_start=1.0,
+                t_end=0.05,
+                schedule="exp",
+                seed=42,
+            ),
+            trace_logger=trace,
+            run_id=run_id,
+        )
+        best_score = res.best_eval.final_score
+        eval_count = res.eval_count
+        worst_path = save_worst_examples(res.best_eval, out_dir="results", run_id=run_id, k=5)
 
     elif algo == "bfs":
         res = bfs_search(
@@ -83,6 +111,10 @@ def run_one(task: str, algo: str, budget: int, max_neighbors: int, max_depth: in
         best_score = res.best_eval.final_score
         eval_count = res.eval_count
         worst_path = save_worst_examples(res.best_eval, out_dir="results", run_id=run_id, k=5) # added worst_path in my second commit
+
+
+
+
 
     else:
         res = beam_search(
@@ -150,12 +182,15 @@ def main():
     ap.add_argument("--max_depth", type=int, default=4)
     ap.add_argument("--beam_width", type=int, default=5)
     ap.add_argument("--heuristics", action="store_true")
+    ap.add_argument("--heur_mode", choices=["jaccard", "embedding"], default="jaccard")
+    ap.add_argument("--emb_cos", type=float, default=0.90)
     args = ap.parse_args()
 
     budgets = [int(x.strip()) for x in args.budgets.split(",") if x.strip()]
 
     tasks = ["qa", "summarization"] if args.task == "both" else [args.task]
-    algos = ["hill", "bfs", "beam"]
+    algos = ["hill", "bfs", "beam", "sa"]
+
 
     rows = []
     for t in tasks:

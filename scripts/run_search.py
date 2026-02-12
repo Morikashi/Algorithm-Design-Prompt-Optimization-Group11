@@ -12,6 +12,7 @@ from src.evaluation.llm_interface import LLMConfig
 from src.utils.trace import TraceLogger
 from src.utils.datasets import QA_DATASET, SUMMARIZATION_DATASET
 from src.utils.datasets_phase2 import QA_PHASE2, SUM_PHASE2
+from src.algorithms.simulated_annealing import simulated_annealing, SAConfig
 
 from src.algorithms.hill_climbing import hill_climb, HillClimbConfig
 from src.algorithms.bfs import bfs_search, BFSConfig
@@ -29,7 +30,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", choices=["qa", "summarization"], required=True)
     ap.add_argument("--backend", choices=["mock", "ollama"], default="mock")
-    ap.add_argument("--algo", choices=["hill", "bfs", "beam"], required=True)
+    ap.add_argument("--algo", choices=["hill", "bfs", "beam", "sa"], required=True)
+
 
     ap.add_argument("--budget", type=int, default=80)
     ap.add_argument("--max_neighbors", type=int, default=25)
@@ -47,6 +49,15 @@ def main():
     ap.add_argument("--heur_mode", choices=["jaccard", "embedding"], default="jaccard")
     ap.add_argument("--emb_cos", type=float, default=0.90)
 
+    ap.add_argument("--sa_steps", type=int, default=200)
+    ap.add_argument("--t_start", type=float, default=1.0)
+    ap.add_argument("--t_end", type=float, default=0.05)
+    ap.add_argument("--schedule", choices=["exp", "linear"], default="exp")
+    ap.add_argument("--seed", type=int, default=42)
+
+    
+    # simulated annealing
+    
 
     args = ap.parse_args()
 
@@ -114,6 +125,26 @@ def main():
         )
         best_prompt, best_eval, eval_count = res.best_prompt, res.best_eval, res.eval_count
 
+    elif args.algo == "sa":
+        res = simulated_annealing(
+            start=start,
+            evaluator=evaluator,
+            dataset=dataset,
+            config=SAConfig(
+                max_steps=args.sa_steps,
+                max_prompt_evals=args.budget,
+                max_neighbors=args.max_neighbors,
+                t_start=args.t_start,
+                t_end=args.t_end,
+                schedule=args.schedule,
+                seed=args.seed,
+            ),
+            trace_logger=trace,
+            run_id=run_id,
+        )
+        best_prompt, best_eval, eval_count = res.best_prompt, res.best_eval, res.eval_count
+
+    
     else:
         res = beam_search(
             start=start,
